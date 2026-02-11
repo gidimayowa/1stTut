@@ -1,4 +1,3 @@
-import uuid
 from pathlib import Path
 
 from reportlab.lib.pagesizes import A4
@@ -9,11 +8,9 @@ EXPORT_DIR = Path("artifacts/exports")
 EXPORT_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def write_analysis_report(payload: dict) -> dict[str, str]:
-    run_id = payload.get("run_id", "manual")
-    artifact_id = str(uuid.uuid4())
-    html_path = EXPORT_DIR / f"analysis_{artifact_id}.html"
-    pdf_path = EXPORT_DIR / f"analysis_{artifact_id}.pdf"
+def write_analysis_report(run_id: str, payload: dict) -> dict[str, str]:
+    html_path = EXPORT_DIR / f"analysis_{run_id}.html"
+    pdf_path = EXPORT_DIR / f"analysis_{run_id}.pdf"
 
     html = f"""
     <html><body>
@@ -35,8 +32,4 @@ def write_analysis_report(payload: dict) -> dict[str, str]:
     c.drawString(40, 740, f"Results: {str(payload.get('results', {}))[:110]}")
     c.save()
 
-    return {
-        "artifact_id": artifact_id,
-        "html": str(html_path),
-        "pdf": str(pdf_path),
-    }
+    return {"html": str(html_path), "pdf": str(pdf_path)}

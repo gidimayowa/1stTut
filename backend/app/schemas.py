@@ -70,6 +70,4 @@ class AnalysisRequest(BaseModel):
     study_id: str
     dependent_variable: str = "task_completion_time_sec"
     group_variable: str = "condition_id"
-    test_type: str = "auto"
-    auto_normality: bool = True
     exclusions: list[ExclusionRule] = Field(default_factory=list)

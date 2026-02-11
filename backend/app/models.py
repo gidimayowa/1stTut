@@ -1,7 +1,7 @@
 import datetime as dt
 import uuid
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -15,7 +15,6 @@ class Study(Base):
     study_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(255))
     retention_days: Mapped[int] = mapped_column(default=365)
-    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
 
 
 class Participant(Base):
@@ -36,7 +35,6 @@ class Session(Base):
     participant_id: Mapped[str] = mapped_column(String(128), index=True)
     study_id: Mapped[str] = mapped_column(String(64), index=True)
     condition_id: Mapped[str] = mapped_column(String(64), index=True)
-    task_id: Mapped[str] = mapped_column(String(64), default="unknown", index=True)
     start_time_utc: Mapped[dt.datetime] = mapped_column(DateTime)
     duration_sec: Mapped[float] = mapped_column(Float)
     completion_status: Mapped[str] = mapped_column(String(32))
@@ -46,9 +44,7 @@ class Session(Base):
     score: Mapped[float | None] = mapped_column(Float, nullable=True)
     content_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     raw_artifact_path: Mapped[str] = mapped_column(Text)
-    anomaly_flag: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
-    anomaly_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
-    uploaded_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow, index=True)
+    uploaded_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
 
     events: Mapped[list["Event"]] = relationship(back_populates="session", cascade="all, delete-orphan")
 
@@ -67,7 +63,7 @@ class Event(Base):
     object_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     tool_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     hand: Mapped[str] = mapped_column(String(16), default="None")
-    timestamp_utc: Mapped[dt.datetime] = mapped_column(DateTime, index=True)
+    timestamp_utc: Mapped[dt.datetime] = mapped_column(DateTime)
     time_since_session_start_ms: Mapped[int] = mapped_column(Integer)
     position: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     rotation: Mapped[dict | None] = mapped_column(JSON, nullable=True)
@@ -93,21 +89,10 @@ class AnalysisRun(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     run_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     study_id: Mapped[str] = mapped_column(String(64), index=True)
-    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow, index=True)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
     exclusions_applied: Mapped[dict] = mapped_column(JSON, default=dict)
     tests_run: Mapped[dict] = mapped_column(JSON, default=dict)
     result_summary: Mapped[dict] = mapped_column(JSON, default=dict)
-
-
-class Artifact(Base):
-    __tablename__ = "artifacts"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    artifact_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
-    artifact_type: Mapped[str] = mapped_column(String(32), index=True)
-    path: Mapped[str] = mapped_column(Text)
-    mime_type: Mapped[str] = mapped_column(String(64), default="application/octet-stream")
-    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
 
 
 class User(Base):

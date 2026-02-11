@@ -1,11 +1,11 @@
 -- Initial schema migration for XR research platform.
+-- Apply with psql -f backend/migrations/0001_init.sql
 
 CREATE TABLE IF NOT EXISTS studies (
   id SERIAL PRIMARY KEY,
   study_id VARCHAR(64) UNIQUE NOT NULL,
   name VARCHAR(255) NOT NULL,
-  retention_days INTEGER NOT NULL DEFAULT 365,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+  retention_days INTEGER NOT NULL DEFAULT 365
 );
 
 CREATE TABLE IF NOT EXISTS participants (
@@ -21,7 +21,6 @@ CREATE TABLE IF NOT EXISTS sessions (
   participant_id VARCHAR(128) NOT NULL,
   study_id VARCHAR(64) NOT NULL,
   condition_id VARCHAR(64) NOT NULL,
-  task_id VARCHAR(64) NOT NULL DEFAULT 'unknown',
   start_time_utc TIMESTAMP NOT NULL,
   duration_sec DOUBLE PRECISION NOT NULL,
   completion_status VARCHAR(32) NOT NULL,
@@ -31,8 +30,6 @@ CREATE TABLE IF NOT EXISTS sessions (
   score DOUBLE PRECISION,
   content_hash VARCHAR(64) UNIQUE NOT NULL,
   raw_artifact_path TEXT NOT NULL,
-  anomaly_flag BOOLEAN NOT NULL DEFAULT FALSE,
-  anomaly_reason TEXT,
   uploaded_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
@@ -72,15 +69,6 @@ CREATE TABLE IF NOT EXISTS analysis_runs (
   exclusions_applied JSONB NOT NULL DEFAULT '{}',
   tests_run JSONB NOT NULL DEFAULT '{}',
   result_summary JSONB NOT NULL DEFAULT '{}'
-);
-
-CREATE TABLE IF NOT EXISTS artifacts (
-  id SERIAL PRIMARY KEY,
-  artifact_id VARCHAR(64) UNIQUE NOT NULL,
-  artifact_type VARCHAR(32) NOT NULL,
-  path TEXT NOT NULL,
-  mime_type VARCHAR(64) NOT NULL DEFAULT 'application/octet-stream',
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS users (
