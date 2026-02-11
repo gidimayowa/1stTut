@@ -1,17 +1,6 @@
 # GDPR-aware XR Research Data Platform (FastAPI + React + PostgreSQL)
 
-This repository now includes a complete MVP web platform for ingesting Unity XR session logs, validating them, computing metrics, running statistical analysis, and exporting research artifacts.
-
-## What is included
-
-- `backend/` FastAPI API with ingestion, metrics, analyses, exclusions, and exports.
-- `frontend/` React + Plotly dashboard shell.
-- `backend/migrations/0001_init.sql` SQL migration for PostgreSQL schema.
-- `scripts/generate_sample_data.py` synthetic dataset generator (20+ sessions).
-- `docs/unity_logging_guide.md` exact Unity log formatting guide.
-- `docker-compose.yml` for local stack (frontend + backend + PostgreSQL).
-
-## Quick start (local)
+## Run locally
 
 ```bash
 docker compose up --build
@@ -19,98 +8,60 @@ docker compose up --build
 
 Services:
 - Frontend: http://localhost:5173
-- Backend API: http://localhost:8000/docs
-- PostgreSQL: localhost:5432
+- Backend docs: http://localhost:8000/docs
+- Health: http://localhost:8000/health
 
-## Backend development without Docker
+## Upload sample data workflow
 
+1. Generate sample files:
 ```bash
-cd backend
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-export DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/xr_research
-uvicorn app.main:app --reload
+python scripts/generate_sample_data.py
 ```
+2. In UI, open **Ingest Data** card.
+3. Set `study_id` and `condition_id`.
+4. Select multiple `sample_data/*.jsonl` and/or `sample_data/*.csv` files.
+5. Click **Upload & ingest**.
+6. Recompute metrics (automatic after upload, can be run manually too).
 
-## Ingestion contract
+## Frontend capabilities delivered
 
-Upload `.jsonl` or `.csv` files where each file is one session.
+- Multi-file CSV/JSONL upload with per-file ingest results.
+- Global filters (study/condition/task/date/anomalies).
+- KPI strip (participants, sessions, completion stats, error stats, last ingest).
+- Metrics recompute action.
+- Analysis runner with exclusion rule editor and run history.
+- Exports (cleaned CSV + generated report download link).
+- Session inspector table and event timeline plot.
+- Anomaly badge support.
 
-- Deduplication uses SHA-256 content hash.
-- Raw uploads are stored immutably under `backend/artifacts/raw_uploads/`.
-- Schema errors return per-file details.
+## API endpoints powering the UI
 
-## Database tables
+### Existing + enhanced
+- `POST /api/ingest` (multipart: files + study_id + condition_id + optional task_id)
+- `POST /api/metrics/recompute`
+- `POST /api/analysis/run`
+- `GET /api/exports/cleaned.csv`
+- `POST /api/analysis/report`
+- `DELETE /api/participants/{participant_id}`
 
-- `studies`
-- `participants`
-- `sessions`
-- `events`
-- `computed_metrics`
-- `analysis_runs`
-- `users`
+### Added
+- `GET /api/studies`
+- `GET /api/conditions?study_id=...`
+- `GET /api/tasks?study_id=...`
+- `GET /api/summary`
+- `GET /api/sessions`
+- `GET /api/sessions/{session_id}`
+- `GET /api/sessions/{session_id}/events`
+- `GET /api/analysis/runs`
+- `GET /api/analysis/runs/{run_id}`
+- `GET /api/artifacts/{artifact_id}`
 
-## Exclusion rules supported (MVP)
+## Environment configuration
 
-- `exclude_pretest_score_gt`
-- `exclude_duration_lt`
-- `exclude_missing_timestamp_pct_gt`
+Frontend API URL is configured via:
+- `VITE_API_URL` (default: `http://localhost:8000`)
 
-Each analysis run stores exclusion provenance (rules + removed counts).
+## Backend notes
 
-## Statistical analyses
-
-- Descriptives (mean, median, SD, CI)
-- Shapiro-Wilk normality checks
-- Two-group: Welch t-test + Mann-Whitney + Cohen's d
-- Multi-group: ANOVA + Kruskal-Wallis + eta squared
-- Repeated sessions: mixed effects model (statsmodels mixedlm)
-- Multiple-comparison note (Holm-Bonferroni for post-hoc)
-
-## Exports
-
-- Cleaned dataset CSV via API (`/api/exports/cleaned.csv?study_id=...`)
-- Computed metrics table available in DB/API recompute response
-- Report artifacts can be added in `backend/artifacts/exports/`
-- Plotly charts in frontend are exportable via built-in modebar
-
-## Running tests
-
-```bash
-cd backend
-PYTHONPATH=. pytest -q
-```
-
-## How to add new metrics
-
-1. Open `backend/app/services/metrics.py`.
-2. Add metric computation inside `compute_session_metrics`.
-3. Add assertions in `backend/tests/test_metrics.py`.
-4. Re-run tests.
-
-## How to add new statistical tests
-
-1. Open `backend/app/services/analysis.py`.
-2. Add test logic in `run_analysis` and include p-values/effect sizes.
-3. Extend API response contract if needed.
-4. Add unit tests for the new branch.
-
-## GDPR/privacy notes implemented
-
-- Participant identifiers are pseudonymous only (no names in schema).
-- Raw upload audit trail is immutable.
-- Secrets are env-driven (`DATABASE_URL`); deploy with secret manager.
-- Add TLS at reverse proxy (Nginx/Caddy/Traefik) for HTTPS in deployment.
-- Per-study retention field is included on `studies.retention_days`.
-- To delete a participant, remove participant-linked sessions/events (cascade) and record audit action.
-
-## Deployment guidance
-
-- Use managed PostgreSQL with backups.
-- Deploy backend container behind HTTPS reverse proxy.
-- Restrict CORS to approved dashboard domains.
-- Configure encrypted secrets via environment or vault.
-
-## Unity integration
-
-Follow `docs/unity_logging_guide.md` exactly. Use `scripts/generate_sample_data.py` for end-to-end pipeline testing before collecting participant data.
+- CORS is enabled for `http://localhost:5173`.
+- Backend Docker image creates `/app/artifacts/*` directories at build time, so no host-side manual artifact folder creation is required.
